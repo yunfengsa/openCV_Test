@@ -18,6 +18,7 @@ public class MainActivity extends Activity {
             Log.i(TAG,"false");
         }
         System.loadLibrary("native-lib");
+        System.loadLibrary("opencv_java3");
     }
 
     @Override
@@ -33,7 +34,8 @@ public class MainActivity extends Activity {
                 startActivity(intent);
                 break;
             case R.id.toImage:
-
+                Intent intent1=new Intent(getApplicationContext(),ImageActivity.class);
+                startActivity(intent1);
                 break;
             default:
 

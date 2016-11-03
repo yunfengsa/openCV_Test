@@ -9,4 +9,9 @@
         android:id="@+id/camera_view"
         opencv:show_fps="true"
         opencv:camera_id="any"/>
+    <Button
+        android:onClick="changeState"
+        android:text="变换状态"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
 </RelativeLayout>
