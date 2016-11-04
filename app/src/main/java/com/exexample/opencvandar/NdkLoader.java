@@ -20,4 +20,9 @@ public class NdkLoader {
 
     //图像处理
     public static native int[] getGrayImage(int[] pixels, int w, int h);
+
+    //face 检测
+    public static native void detectFace(String eyePath,
+                                          String cascade, long nativeMat);
+    public static native int[] gestureDetection2(String srcImg,String dataDir);
 }

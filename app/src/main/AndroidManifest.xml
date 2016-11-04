@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.exexample.opencvandar">
     <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-feature android:name="android.hardware.Camera" android:required="false"/>
     <uses-feature android:name="android.hardware.Camera.AutoFocusCallback" android:required="false"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
@@ -25,6 +27,8 @@
         </activity>
         <activity android:name=".VideoActivity"/>
         <activity android:name=".ImageActivity"/>
+        <activity android:name=".GestureActivity"/>
+        <activity android:name=".ImageManipulationsActivity"/>
     </application>
 
 </manifest>

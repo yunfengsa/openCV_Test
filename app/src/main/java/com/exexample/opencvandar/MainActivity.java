@@ -37,12 +37,17 @@ public class MainActivity extends Activity {
                 Intent intent1=new Intent(getApplicationContext(),ImageActivity.class);
                 startActivity(intent1);
                 break;
+            case R.id.gestureDetection:
+                Intent intent2=new Intent(getApplicationContext(),GestureActivity.class);
+                startActivity(intent2);
+                break;
+            case R.id.gestureDetection2:
+                Intent intent3=new Intent(getApplicationContext(),ImageManipulationsActivity.class);
+                startActivity(intent3);
+                break;
             default:
 
         }
     }
 
-
-
-    public native String stringFromJNI();
 }

@@ -2,6 +2,7 @@ package com.exexample.opencvandar;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -47,7 +48,7 @@ public class VideoActivity extends Activity implements CameraBridgeViewBase.CvCa
     }
     private int status=0;
     public void changeState(View v){
-        if (status<3){
+        if (status<4){
             status++;
         }else {
             status=0;
@@ -82,6 +83,11 @@ public class VideoActivity extends Activity implements CameraBridgeViewBase.CvCa
                 Imgproc.rectangle(mZoomWindow, new Point(1, 1), new Point(wsize.width - 2, wsize.height - 2), new Scalar(255, 0, 0, 255), 2);
                 zoomCorner.release();
                 mZoomWindow.release();
+                break;
+            case 3://人脸检测
+                mRgba=inputFrame.rgba();
+                NdkLoader.detectFace(Environment.getExternalStorageDirectory()+"/eye.xml",
+                        Environment.getExternalStorageDirectory()+"/face.xml",mRgba.getNativeObjAddr());
                 break;
             default://正常值
                 mRgba=inputFrame.rgba();
