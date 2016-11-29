@@ -67,7 +67,7 @@ public class VideoActivity extends Activity implements CameraBridgeViewBase.CvCa
         Size sizeRgba = inputFrame.rgba().size();
         int rows = (int) sizeRgba.height;
         int cols = (int) sizeRgba.width;
-        switch (status){
+        switch (7){
             case 0: //灰度处理
                 Imgproc.cvtColor(inputFrame.gray(),mRgba,Imgproc.COLOR_GRAY2RGBA,4);
                 break;
@@ -88,6 +88,22 @@ public class VideoActivity extends Activity implements CameraBridgeViewBase.CvCa
                 mRgba=inputFrame.rgba();
                 NdkLoader.detectFace(Environment.getExternalStorageDirectory()+"/eye.xml",
                         Environment.getExternalStorageDirectory()+"/face.xml",mRgba.getNativeObjAddr());
+                break;
+            case 4://手势检测
+                mRgba=inputFrame.rgba();
+                NdkLoader.gestureRecognization(mRgba.getNativeObjAddr());
+                break;
+            case 5://凸包
+                mRgba=new Mat(mRgba.height(),mRgba.width(),CvType.CV_8UC4);
+                NdkLoader.concexHull(inputFrame.rgba().getNativeObjAddr(),mRgba.getNativeObjAddr());
+                break;
+            case 6://拳头检测
+                mRgba=inputFrame.rgba();
+                NdkLoader.detectPow(Environment.getExternalStorageDirectory()+"/hand.xml",mRgba.getNativeObjAddr());
+                break;
+            case 7://肤色检测
+//                mRgba=new Mat(mRgba.height(),mRgba.width(),CvType.CV_8UC1);
+                NdkLoader.skinYCrCb(inputFrame.rgba().getNativeObjAddr(),mRgba.getNativeObjAddr());
                 break;
             default://正常值
                 mRgba=inputFrame.rgba();

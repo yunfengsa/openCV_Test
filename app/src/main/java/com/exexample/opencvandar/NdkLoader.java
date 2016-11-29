@@ -25,4 +25,8 @@ public class NdkLoader {
     public static native void detectFace(String eyePath,
                                           String cascade, long nativeMat);
     public static native int[] gestureDetection2(String srcImg,String dataDir);
+    public static native int gestureRecognization(long nativeMat);
+    public static native void concexHull(long nativeMat,long dstMat);
+    public static native void detectPow(String handPath,long nativeMat);
+    public static native void skinYCrCb(long nativeMat,long dstMat);
 }

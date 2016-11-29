@@ -2,6 +2,10 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 #include <syslog.h>
+#include <android/log.h>
+#include<vector>
+#include<algorithm>
+
 
 using namespace std;
 using namespace cv;
@@ -44,7 +48,6 @@ Java_com_exexample_opencvandar_NdkLoader_detectFace
     equalizeHist(fram_gray,fram_gray);
     face_cascade.detectMultiScale(fram_gray, faces,
                                   1.1, 3,0|CASCADE_SCALE_IMAGE, Size(30, 30));
-
     for(size_t i = 0; i < faces.size(); i++)
     {
         // 检测到人脸中心
@@ -61,60 +64,270 @@ Java_com_exexample_opencvandar_NdkLoader_detectFace
                                         faces[i].height/2),
                     0, 0, 360, Scalar( 255, 0, 255 ), 4, 8, 0 );
     }
-//    jintArray faceArray;
-//    CvHaarClassifierCascade *cv_cascade = (CvHaarClassifierCascade*)cvLoad( str_cascade );
-//    IplImage *image = cvLoadImage( str_filename, 1 );
-//
-//    if(image!=0){
-//
-//        CvMemStorage* storage = cvCreateMemStorage(0);
-//        CvSeq* faces;
-//
-//        //double t = (double)cvGetTickCount();
-//        /* use the fastest variant */
-//        faces = cvHaarDetectObjects( image, cv_cascade, storage, 1.2, 2,
-//                                     CV_HAAR_DO_CANNY_PRUNING, cvSize(width, height) );
-//        //t = (double)cvGetTickCount() - t;
-//        //printf( "detection time = %gms\n", t/((double)cvGetTickFrequency()*1000.) );
-//
-//
-//        const int total = faces->total;
-//
-//        faceArray = env-> NewIntArray(4*total);
-//        jint faceBuf[4];
-//
-//        for( int i = 0; i < total; i++ )
-//        {
-//            CvRect face_rect = *(CvRect*)cvGetSeqElem( faces, i );
-//            int pointX = face_rect.x;
-//            int pointY = face_rect.y;
-//            int faceWidth = face_rect.width;
-//            int faceHeight = face_rect.height;
-//
-//            //printf("i %d, x %d, y %d, width %d, height %d\n",
-//            //        i,pointX,pointY,faceWidth,faceHeight);
-//
-//
-//            faceBuf[0] = pointX;
-//            faceBuf[1] = pointY;
-//            faceBuf[2] = faceWidth;
-//            faceBuf[3] = faceHeight;
-//
-//
-//            env->SetIntArrayRegion(faceArray,i*4,4,faceBuf);
-//
-//        }
-//
-//        cvReleaseMemStorage( &storage );
-//        cvReleaseImage( &image );
-//    }
-//    cvReleaseHaarClassifierCascade( &cv_cascade );
-//
-//
-//    env->ReleaseStringUTFChars(cascade, str_cascade);
-//    env->ReleaseStringUTFChars(filename, str_filename);
-//    return faceArray;
 }
+
+CascadeClassifier hand_cast;
+JNIEXPORT void JNICALL
+Java_com_exexample_opencvandar_NdkLoader_detectPow
+        (JNIEnv *env, jclass type,jstring handPath,jlong frame)
+{
+    const char *str_Pow;
+    str_Pow = env->GetStringUTFChars(handPath,NULL);
+    if(hand_cast.empty()){
+        hand_cast.load(str_Pow);
+        syslog(1000,"load sucess---------------------");
+    }
+    Mat& srcFrm=*(Mat*)frame;
+    vector<Rect> hands;
+    Mat fram_gray;
+    cvtColor(srcFrm,fram_gray,COLOR_BGR2GRAY);
+    equalizeHist(fram_gray,fram_gray);
+    hand_cast
+//            .detectMultiScale(fram_gray, faces,
+//                                  1.1, 3,0|CASCADE_SCALE_IMAGE, Size(30, 30));
+            .detectMultiScale(fram_gray, hands, 1.1, 2, CV_HAAR_DO_CANNY_PRUNING, Size(30, 30));  //恐怖啊  需要接近两秒的时间 我晕死。
+    for(size_t i = 0; i < hands.size(); i++)
+    {
+        // 检测到人脸中心
+        Point center(hands[i].x + hands[i].width/2,
+                     hands[i].y + hands[i].height/2);
+        Mat face = fram_gray(hands[i]);
+        std::vector<Rect> eyes;
+//        // 在人脸区域检测人眼
+//        eyes_cascade.detectMultiScale(face, eyes, 1.1, 2,
+//                                      0 |CASCADE_SCALE_IMAGE, Size(30, 30) );
+//        if(eyes.size() > 0)
+            // 绘制人脸
+//            ellipse(srcFrm, center, Size(hands[i].width/2,
+//                                         hands[i].height/2),
+//                    0, 0, 360, Scalar( 255, 0, 255 ), 4, 8, 0 );
+        rectangle(srcFrm, hands[i], Scalar(255,0,255));
+    }
+
+}
+
+
+
+
+double dist(Point x,Point y)
+{
+    return (x.x-y.x)*(x.x-y.x)+(x.y-y.y)*(x.y-y.y);
+}
+
+pair<Point,double> circleFromPoints(Point p1, Point p2, Point p3)
+{
+    double offset = pow(p2.x,2.0) + pow(p2.y,2.0);
+    double bc =   ( pow(p1.x,2.0) + pow(p1.y,2.0) - offset )/2.0;
+    double cd =   (offset - pow(p3.x, 2.0) - pow(p3.y, 2.0))/2.0;
+    double det =  (p1.x - p2.x) * (p2.y - p3.y) - (p2.x - p3.x)* (p1.y - p2.y);
+    double TOL = 0.0000001;
+    if (abs(det) < TOL) { cout<<"POINTS TOO CLOSE"<<endl;return make_pair(Point(0,0),0); }
+
+    double idet = 1/det;
+    double centerx =  (bc * (p2.y - p3.y) - cd * (p1.y - p2.y)) * idet;
+    double centery =  (cd * (p1.x - p2.x) - bc * (p2.x - p3.x)) * idet;
+    double radius = sqrt( pow(p2.x - centerx,2) + pow(p2.y-centery,2));
+
+    return make_pair(Point(centerx,centery),radius);
+}
+
+
+
+
+
+jint
+Java_com_exexample_opencvandar_NdkLoader_gestureRecognization
+        (JNIEnv *env, jclass type,jlong srcFrameNatve)
+{
+    Mat& frame=*((Mat*)srcFrameNatve); //current frame
+    Mat fgMaskMOG2; //fg mask fg mask generated by MOG2 method
+    Ptr<BackgroundSubtractor> pMOG2; //MOG2 Background subtractor
+    pMOG2 = createBackgroundSubtractorMOG2(); //MOG2 approach
+    pMOG2->apply(frame, fgMaskMOG2);
+    rectangle(frame, cv::Point(10, 2), cv::Point(100,20),
+              cv::Scalar(255,255,255), -1);
+    string frameNub="hello";
+    putText(frame, frameNub.c_str(), cv::Point(15, 15),
+            FONT_HERSHEY_SIMPLEX, 0.5 , cv::Scalar(0,0,0));
+
+
+    return 0;
+
+
+};
+
+Mat src; Mat src_gray;
+int thresh = 100;
+int max_thresh = 255;
+RNG rng(12345);
+void thresh_callback(int, void*,Mat dst)
+{
+    Mat srcTemp = src.clone();
+    Mat threMat;
+    // 轮廓检测参数
+    vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    // 阈值化操作
+    threshold(src_gray, threMat, thresh, 255, THRESH_BINARY);
+    // 轮廓检测
+    findContours(threMat, contours, hierarchy,
+                 CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+    // 凸包及缺陷检测参数
+    vector<vector<Point> > pointHull(contours.size());
+    vector<vector<int> >   intHull(contours.size());
+    vector<vector<Vec4i> > hullDefect(contours.size());
+    for (size_t i = 0; i < contours.size(); i++)
+    {
+        // Point类型凸包检测
+        convexHull(Mat(contours[i]), pointHull[i], false);
+        // int类型凸包检测
+        convexHull(Mat(contours[i]), intHull[i], false);
+        // 凸包缺陷检测
+        convexityDefects(Mat(contours[i]), intHull[i], hullDefect[i]);
+    }
+    // 绘制凸包及缺陷检测
+    Mat& drawing = dst;
+    for (size_t i = 0; i < contours.size(); i++)
+    {
+        Scalar color = Scalar(rng.uniform(0, 255),
+                              rng.uniform(0, 255), rng.uniform(0, 255));
+        drawContours(drawing, contours, i, color, 1,
+                     8, vector<Vec4i>(), 0, Point());
+        drawContours(drawing, pointHull, i, color,
+                     1, 8, vector<Vec4i>(), 0, Point());
+        // 绘制缺陷
+        size_t count = contours[i].size();
+        if (count < 300)
+            continue;
+        // 凸包缺陷迭代器设置
+        vector<Vec4i>::iterator iterDefects = hullDefect[i].begin();
+        // 遍历得到4个特征量
+        while (iterDefects != hullDefect[i].end()) {
+            Vec4i& v = (*iterDefects);
+            // 起始位置
+            int startidx = v[0];
+            Point ptStart(contours[i][startidx]);
+            // 终止位置
+            int endidx = v[1];
+            Point ptEnd(contours[i][endidx]);
+            // 内凸壳的最远的点缺陷
+            int faridx = v[2];
+            Point ptFar(contours[i][faridx]);
+            // 凸包之间的最远点
+            int depth = v[3] / 256;
+            if (depth > 20 && depth < 80)
+            {
+                line(drawing, ptStart, ptFar, CV_RGB(0, 255, 0), 2);
+                line(drawing, ptEnd, ptFar, CV_RGB(0, 255, 0), 2);
+                circle(drawing, ptStart, 4, Scalar(255, 0, 100), 2);
+                circle(drawing, ptEnd, 4, Scalar(255, 0, 100), 2);
+                circle(drawing, ptFar, 4, Scalar(100, 0, 255), 2);
+            }
+            iterDefects++;
+        }
+    }
+//    cv::imshow("result", drawing);
+}
+void
+Java_com_exexample_opencvandar_NdkLoader_concexHull
+        (JNIEnv *env, jclass type,jlong srcFrameNatve,jlong dstFrame)
+{
+    src=*(Mat*)srcFrameNatve;
+    Mat& dstMat=*(Mat*)dstFrame;
+    cvtColor( src, src_gray, CV_BGR2GRAY );
+    blur( src_gray, src_gray, Size(3,3) );
+
+    thresh_callback(0,0,dstMat);
+
+}
+
+void
+Java_com_exexample_opencvandar_NdkLoader_skinYCrCb
+        (JNIEnv *env, jclass type,jlong srcFrameNatve,jlong dstFrame){
+//    cv::Mat  &resultMat=*(Mat*)dstFrame;
+//    cv::Mat &srcImage = *(Mat*)srcFrameNatve;
+//    if (srcImage.empty())
+//        return ;
+//    // 构建椭圆模型
+//    cv::Mat skinMat = cv::Mat::zeros(cv::Size(256, 256), CV_8UC1);
+//    ellipse(skinMat, cv::Point(113, 155.6), cv::Size(23.4, 15.2),
+//            43.0, 0.0, 360.0, cv::Scalar(255, 255, 255), -1);
+//    // 结构元素定义
+//    cv::Mat struElmen = getStructuringElement(cv::MORPH_RECT,
+//                                              cv::Size(3, 3), cv::Point(-1, -1));
+//    cv::Mat YcrcbMat;
+//    cv::Mat tempMat = cv::Mat::zeros(srcImage.size(), CV_8UC1);
+//    // 颜色空间转换YCrCb
+//    cvtColor(srcImage, YcrcbMat, CV_BGR2YCrCb);
+//    // 椭圆皮肤模型检测
+//    for (int i = 0; i < srcImage.rows; i++)
+//    {
+//        uchar* p = (uchar*)tempMat.ptr<uchar>(i);
+//        cv::Vec3b* ycrcb = (cv::Vec3b*)YcrcbMat.ptr<cv::Vec3b>(i);
+//        for (int j = 0; j < srcImage.cols; j++)
+//        {
+//            // 颜色判断
+//            if (skinMat.at<uchar>(ycrcb[j][1], ycrcb[j][2]) > 0)
+//                p[j] = 255;
+//        }
+//    }
+//    // 形态学闭操作
+//    morphologyEx(tempMat, tempMat, cv::MORPH_CLOSE, struElmen);
+//    // 定义轮廓参数
+//    std::vector< std::vector<cv::Point> > contours;
+//    std::vector< std::vector<cv::Point> > resContours;
+//    std::vector< cv::Vec4i > hierarchy;
+//    // 连通域查找
+//    findContours(tempMat, contours, hierarchy,
+//                 CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+//    // 筛选伪轮廓
+//    for (size_t i = 0; i < contours.size(); i++)
+//    {
+//        if (fabs(contourArea(cv::Mat(contours[i]))) > 1000)
+//            resContours.push_back(contours[i]);
+//    }
+//    tempMat.setTo(0);
+//    // 绘制轮廓
+//    drawContours(tempMat, resContours, -1,
+//                 cv::Scalar(255, 0, 0), CV_FILLED);
+//    srcImage.copyTo(resultMat, tempMat);
+
+
+    Mat& frame=*((Mat*)srcFrameNatve);
+    Mat& result=*(Mat*)dstFrame;
+    Mat tmp;
+    Mat Y, Cr, Cb;
+    vector<Mat> channels;
+    bool stop = false;
+    frame.copyTo(tmp);
+    cvtColor(tmp,tmp,CV_BGR2YCrCb);
+    split(tmp,channels);
+    Y = channels.at(0);
+    Cr = channels.at(1);
+    Cb = channels.at(2);
+    result.create(frame.rows, frame.cols, CV_8UC1);
+    for (int j = 1; j < Y.rows - 1; j++)
+    {
+        uchar* currentCr = Cr.ptr< uchar>(j);
+        uchar* currentCb = Cb.ptr< uchar>(j);
+        uchar* current = result.ptr< uchar>(j);
+        for (int i = 1; i < Y.cols - 1; i++)
+        {
+            if ((currentCr[i] > 137) && (currentCr[i] < 175) && (currentCb[i] > 100) && (currentCb[i] < 118))
+            {
+                current[i] = 255;
+            }
+            else
+            {
+                current[i] = 0;
+            }
+        }
+    }
+}
+
+
+
+
 
 
 

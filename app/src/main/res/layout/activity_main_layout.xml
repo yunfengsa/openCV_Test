@@ -30,4 +30,16 @@
         android:id="@+id/gestureDetection2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
+    <Button
+        android:text="alljoyn Client"
+        android:onClick="jump"
+        android:id="@+id/alloynClient"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <Button
+        android:text="alljoyn Server"
+        android:onClick="jump"
+        android:id="@+id/alloynServer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
 </LinearLayout>
